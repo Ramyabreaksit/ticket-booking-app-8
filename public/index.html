@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Movie Ticket Booking</title>
+<style>
+  body { font-family: 'Georgia', serif; max-width: 600px; margin: 30px auto; padding: 0 15px; background: #121212; color: #f0f0f0; }
+  h1 { text-align: center; color: #e50914; letter-spacing: 1px; }
+  .movie-card { background: #1e1e1e; padding: 16px; border-radius: 10px; margin-bottom: 14px; border: 1px solid #333; }
+  .movie-card h3 { margin: 0 0 6px; color: #fff; }
+  .movie-card .info { color: #aaa; font-size: 0.9em; margin-bottom: 10px; }
+  .seats-left { color: #e50914; font-weight: bold; }
+  .book-row { display: flex; gap: 8px; margin-top: 10px; }
+  input { width: 70px; padding: 8px; border: none; border-radius: 4px; background: #333; color: #fff; }
+  button { background: #e50914; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+  button:hover { background: #b20710; }
+  .sold-out { color: #777; font-style: italic; }
+</style>
+</head>
+<body>
+
+<h1>🎬 Movie Ticket Booking</h1>
+
+<div id="moviesList"></div>
+
+<script>
+  const moviesList = document.getElementById('moviesList');
+
+  async function loadMovies() {
+    const res = await fetch('/api/movies');
+    const movies = await res.json();
+    moviesList.innerHTML = '';
+    movies.forEach(m => {
+      const remaining = m.totalSeats - m.bookedSeats;
+      const div = document.createElement('div');
+      div.className = 'movie-card';
+      div.innerHTML = `
+        <h3>${m.title}</h3>
+        <div class="info">Show time: ${m.time}</div>
+        <div class="seats-left">${remaining > 0 ? remaining + ' seats left' : ''}</div>
+        ${remaining > 0 ? `
+          <div class="book-row">
+            <input type="number" min="1" max="${remaining}" id="seats-${m.id}" placeholder="Seats">
+            <button onclick="book(${m.id})">Book Now</button>
+          </div>
+        ` : `<div class="sold-out">SOLD OUT</div>`}
+      `;
+      moviesList.appendChild(div);
+    });
+  }
+
+  async function book(id) {
+    const input = document.getElementById(`seats-${id}`);
+    const seats = input.value;
+    if (!seats) { alert('Enter number of seats'); return; }
+    const res = await fetch(`/api/movies/${id}/book`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ seats })
+    });
+    const data = await res.json();
+    if (data.error) { alert(data.error); return; }
+    loadMovies();
+  }
+
+  loadMovies();
+</script>
+
+</body>
+</html>
